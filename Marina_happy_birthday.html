@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#090014">
+<title>С Днём Рождения ❤️</title>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background:
+        radial-gradient(circle at 50% 40%,
+        #3b0b45 0%,
+        #19051f 40%,
+        #090014 100%);
+    color: white;
+    position: relative;
+}
+
+/* Canvas с частицами */
+#canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    z-index: 1;
+}
+
+/* Затемнение */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background:
+        radial-gradient(circle at center,
+        transparent 0%,
+        rgba(0,0,0,0.15) 50%,
+        rgba(0,0,0,0.55) 100%);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Главный экран */
+.screen {
+    position: fixed;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 25px;
+    text-align: center;
+    transition:
+        opacity 0.8s ease,
+        transform 0.8s ease;
+}
+
+/* Заголовок */
+.title {
+    font-size: clamp(38px, 10vw, 72px);
+    font-weight: 800;
+    line-height: 1.1;
+    text-shadow:
+        0 0 10px rgba(255, 100, 180, 0.7),
+        0 0 30px rgba(255, 50, 150, 0.5),
+        0 0 60px rgba(255, 50, 150, 0.3);
+    animation: titlePulse 3s infinite ease-in-out;
+}
+
+.subtitle {
+    margin-top: 15px;
+    font-size: clamp(16px, 4.5vw, 24px);
+    color: rgba(255,255,255,0.85);
+    letter-spacing: 1px;
+    max-width: 600px;
+}
+
+/* Кнопка */
+.open-button {
+    margin-top: 35px;
+    border: none;
+    outline: none;
+    padding: 17px 32px;
+    border-radius: 50px;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    background:
+        linear-gradient(135deg,
+        #ff3d8d,
+        #b522ff);
+    box-shadow:
+        0 8px 30px rgba(255, 40, 150, 0.45);
+    cursor: pointer;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.open-button:active {
+    transform: scale(0.94);
+    box-shadow:
+        0 4px 15px rgba(255, 40, 150, 0.3);
+}
+
+/* Поздравление: прокручиваемая область */
+.greeting {
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    padding: 12px 14px;
+    overflow: hidden;
+    text-align: center;
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.96);
+    transition: opacity 0.7s ease, transform 0.7s ease, visibility 0.7s ease;
+}
+.greeting.show {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+}
+.greeting-content {
+    width: 100%;
+    max-width: 720px;
+    max-height: 100%;
+    margin: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    padding: 18px 14px 24px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,100,180,.85) rgba(255,255,255,.12);
+}
+.greeting-content::-webkit-scrollbar { width: 6px; }
+.greeting-content::-webkit-scrollbar-track {
+    background: rgba(255,255,255,.10);
+    border-radius: 10px;
+}
+.greeting-content::-webkit-scrollbar-thumb {
+    background: rgba(255,100,180,.85);
+    border-radius: 10px;
+}
+.greeting h2 {
+    font-size: clamp(30px, 8vw, 56px);
+    line-height: 1.12;
+    margin: 0 auto 22px;
+    text-shadow: 0 0 15px rgba(255,80,180,.8), 0 0 40px rgba(255,50,150,.5);
+}
+.greeting p {
+    max-width: 650px;
+    margin: 0 auto 18px;
+    font-size: clamp(16px, 4.2vw, 21px);
+    line-height: 1.7;
+    letter-spacing: .1px;
+    text-align: left;
+    color: rgba(255,255,255,.94);
+    text-shadow: 0 2px 10px rgba(0,0,0,.5);
+}
+.greeting p:first-of-type {
+    text-align: center;
+    font-weight: 600;
+    color: #ffd6e8;
+}
+.greeting strong { color: #ffb8d8; font-weight: 700; }
+.greeting .signoff {
+    text-align: center;
+    font-weight: 700;
+    color: #ffd6e8;
+    margin-top: 24px;
+}
+
+/* Сердечко после открытия */
+.big-heart {
+    font-size: clamp(70px, 20vw, 140px);
+    margin-bottom: 10px;
+    animation:
+        heartBeat 1.3s infinite ease-in-out;
+    filter:
+        drop-shadow(0 0 15px #ff4b9b)
+        drop-shadow(0 0 35px #ff167f);
+}
+
+/* Кнопка повторного запуска */
+.restart {
+    margin-top: 8px;
+    margin-bottom: 8px;
+    padding: 12px 24px;
+    border-radius: 30px;
+    border: 1px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.08);
+    color: white;
+    font-size: 15px;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+/* =========================================================
+   КОЛОНКИ С ФОТО ПО БОКАМ
+   ========================================================= */
+
+.photo-column {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    pointer-events: none; /* чтобы не мешали кликам, пока не нужны */
+    opacity: 0;
+    transition: opacity 1s ease 0.3s;
+}
+
+.photo-column--left {
+    left: 18px;
+}
+
+.photo-column--right {
+    right: 18px;
+}
+
+/* Появление колонок при открытии поздравления */
+.greeting.show ~ .photo-column,
+body.greeting-open .photo-column {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Слот под фото */
+.photo-slot {
+    width: clamp(110px, 13vw, 170px);
+    aspect-ratio: 3 / 4;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 120, 190, 0.35);
+    box-shadow:
+        0 0 18px rgba(255, 60, 160, 0.25),
+        0 0 45px rgba(255, 40, 150, 0.12),
+        inset 0 0 20px rgba(255, 100, 180, 0.08);
+    backdrop-filter: blur(2px);
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+/* Лёгкий наклон для «живости» */
+.photo-column--left .photo-slot:nth-child(1) { transform: rotate(-3deg); }
+.photo-column--left .photo-slot:nth-child(2) { transform: rotate(2deg) translateX(6px); }
+.photo-column--left .photo-slot:nth-child(3) { transform: rotate(-2deg); }
+
+.photo-column--right .photo-slot:nth-child(1) { transform: rotate(3deg); }
+.photo-column--right .photo-slot:nth-child(2) { transform: rotate(-2deg) translateX(-6px); }
+.photo-column--right .photo-slot:nth-child(3) { transform: rotate(2deg); }
+
+.photo-slot:hover {
+    transform: scale(1.06) rotate(0deg) !important;
+    box-shadow:
+        0 0 25px rgba(255, 80, 180, 0.5),
+        0 0 60px rgba(255, 40, 150, 0.3),
+        inset 0 0 25px rgba(255, 120, 200, 0.15);
+    z-index: 10;
+}
+
+.photo-slot img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0.92;
+    transition: opacity 0.4s ease, transform 0.6s ease;
+}
+
+.photo-slot:hover img {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+/* Плейсхолдер, если картинка не загружена */
+.photo-slot::after {
+    content: "❤";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: rgba(255, 120, 190, 0.35);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Анимации */
+@keyframes titlePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+}
+
+@keyframes heartBeat {
+    0%, 100% { transform: scale(1); }
+    15% { transform: scale(1.12); }
+    30% { transform: scale(1); }
+    45% { transform: scale(1.08); }
+    60% { transform: scale(1); }
+}
+
+/* Планшеты и небольшие ноутбуки — прячем колонки */
+@media (max-width: 1100px) {
+    .photo-column {
+        display: none;
+    }
+}
+
+/* Телефон */
+@media (max-width: 600px) {
+    .screen { padding: 20px; }
+    .title { font-size: 42px; }
+    .subtitle { font-size: 17px; margin-top: 12px; }
+    .open-button {
+        margin-top: 28px;
+        padding: 16px 28px;
+        font-size: 17px;
+        min-height: 54px;
+    }
+    .greeting { padding: 8px 7px; }
+    .greeting-content { padding: 14px 12px 22px; }
+    .greeting h2 { margin-bottom: 18px; }
+    .greeting p { font-size: 16px; line-height: 1.65; margin-bottom: 16px; }
+}
+
+/* Очень маленькие телефоны */
+@media (max-height: 650px) {
+    .title { font-size: 34px; }
+    .subtitle { font-size: 15px; }
+    .open-button { margin-top: 20px; }
+    .big-heart { font-size: 70px; }
+    .greeting-content { padding-top: 10px; }
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div class="overlay"></div>
+
+<!-- Первый экран -->
+<div class="screen" id="startScreen">
+    <div class="title">
+        С Днём Рождения! ❤️
+    </div>
+    <div class="subtitle">
+        Сегодня особенный день,
+        поэтому для тебя приготовлено кое-что особенное...
+    </div>
+    <button
+        class="open-button"
+        id="openButton"
+        type="button">
+        Открыть поздравление
+    </button>
+</div>
+
+<!-- Колонка фото слева -->
+<div class="photo-column photo-column--left" aria-hidden="true">
+    <div class="photo-slot"><img src="photo5.jpg" alt=""></div>
+    <div class="photo-slot"><img src="photo10.jpg" alt=""></div>
+    <div class="photo-slot"><img src="photo12.jpg" alt=""></div>
+</div>
+
+<!-- Колонка фото справа -->
+<div class="photo-column photo-column--right" aria-hidden="true">
+    <div class="photo-slot"><img src="photo2.jpg" alt=""></div>
+    <div class="photo-slot"><img src="photo4.jpg" alt=""></div>
+    <div class="photo-slot"><img src="photo9.jpg" alt=""></div>
+</div>
+
+<!-- Поздравление -->
+<div class="greeting" id="greeting">
+    <div class="greeting-content" id="greetingContent">
+        <div class="big-heart" aria-hidden="true">❤️</div>
+        <h2>С днём рождения, Марина!</h2>
+
+        <p>Марина, с днём рождения! ❤️</p>
+
+        <p>
+            Мне очень хочется, чтобы ты была счастлива — по-настоящему,
+            искренне, всем сердцем. Чтобы у тебя всегда находились поводы
+            улыбаться, глаза сияли от радости, а на душе было спокойно и тепло.
+        </p>
+
+        <p>
+            Я желаю тебе, чтобы рядом были люди, с которыми можно быть собой,
+            не скрывать свои чувства, смеяться до слёз и говорить обо всём на
+            свете. Люди, которые будут ценить тебя не за что-то, а просто за
+            то, какая ты есть.
+        </p>
+
+        <p>
+            Пусть все твои мечты, даже те, о которых ты никому не рассказываешь,
+            однажды сбудутся. Пусть жизнь бережёт тебя от лишних переживаний,
+            дарит незабываемые моменты и сюрпризы, от которых хочется плакать
+            от счастья.
+        </p>
+
+        <p>
+            И, Марина, пожалуйста, никогда не забывай, какая ты замечательная.
+            Ты заслуживаешь искренней любви, заботы, душевного тепла и всего
+            самого прекрасного, что только может подарить этот мир.
+        </p>
+
+        <p>
+            <strong>
+                Пусть впереди у тебя будет много счастливых дней, тёплых
+                объятий, искренних улыбок и моментов, когда ты сможешь
+                остановиться и подумать: «Как же хорошо, что я счастлива».
+            </strong>
+        </p>
+
+        <p class="signoff">
+            С днём рождения, Марина! Пусть твоё сердце всегда будет наполнено
+            любовью, а жизнь — светом. ❤️✨
+        </p>
+
+        <button class="restart" id="restartButton" type="button">
+            Посмотреть ещё раз ❤️
+        </button>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const startScreen = document.getElementById("startScreen");
+const greeting = document.getElementById("greeting");
+
+const openButton = document.getElementById("openButton");
+const restartButton = document.getElementById("restartButton");
+
+let width;
+let height;
+
+let particles = [];
+
+let animationStarted = false;
+
+function resizeCanvas() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    createHeart();
+}
+
+function heartFunction(t) {
+    /*
+       Параметрическое уравнение сердца
+       x = 16 sin³(t)
+       y = 13 cos(t) - 5 cos(2t) - 2 cos(3t) - cos(4t)
+    */
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y =
+        13 * Math.cos(t)
+        - 5 * Math.cos(2 * t)
+        - 2 * Math.cos(3 * t)
+        - Math.cos(4 * t);
+    return { x: x, y: -y };
+}
+
+/* =========================================================
+   СОЗДАНИЕ ЧАСТИЦ
+   ========================================================= */
+function createHeart() {
+    particles = [];
+    const mobile = window.innerWidth < 600;
+    const count = mobile ? 850 : 1300;
+    const scale = Math.min(width, height) / (mobile ? 34 : 29);
+
+    for (let i = 0; i < count; i++) {
+        const t = Math.random() * Math.PI * 2;
+        const point = heartFunction(t);
+        const fill = Math.sqrt(Math.random());
+
+        const targetX = width / 2 + point.x * scale * fill;
+        const targetY = height / 2 + point.y * scale * fill;
+
+        const startX = Math.random() * width;
+        const startY = Math.random() * height;
+
+        particles.push({
+            x: startX,
+            y: startY,
+            targetX: targetX,
+            targetY: targetY,
+            size: Math.random() * 1.8 + 0.5,
+            alpha: Math.random() * 0.6 + 0.4,
+            speed: Math.random() * 0.025 + 0.012,
+            phase: Math.random() * Math.PI * 2,
+            pulse: Math.random() * 0.03 + 0.01
+        });
+    }
+}
+
+/* =========================================================
+   РИСОВАНИЕ ЧАСТИЦ
+   ========================================================= */
+function drawParticles(time) {
+    ctx.clearRect(0, 0, width, height);
+
+    for (const p of particles) {
+        p.x += (p.targetX - p.x) * p.speed;
+        p.y += (p.targetY - p.y) * p.speed;
+
+        const waveX = Math.sin(time * 0.001 + p.phase) * 0.5;
+        const waveY = Math.cos(time * 0.0012 + p.phase) * 0.5;
+
+        const x = p.x + waveX;
+        const y = p.y + waveY;
+
+        const alpha =
+            p.alpha +
+            Math.sin(time * p.pulse + p.phase) * 0.25;
+
+        ctx.beginPath();
+        ctx.arc(x, y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle =
+            "rgba(255, 90, 170, " +
+            Math.max(0.15, alpha) +
+            ")";
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = "rgba(255, 40, 150, 0.8)";
+        ctx.fill();
+    }
+
+    ctx.shadowBlur = 0;
+    requestAnimationFrame(drawParticles);
+}
+
+/* =========================================================
+   ЛЕТАЮЩИЕ СЕРДЕЧКИ
+   ========================================================= */
+let floatingHearts = [];
+
+function createFloatingHeart() {
+    floatingHearts.push({
+        x: Math.random() * width,
+        y: height + 30,
+        size: Math.random() * 15 + 8,
+        speed: Math.random() * 1.2 + 0.5,
+        opacity: Math.random() * 0.5 + 0.3,
+        drift: Math.random() * 1.5 - 0.75
+    });
+}
+
+function drawFloatingHearts() {
+    for (let i = floatingHearts.length - 1; i >= 0; i--) {
+        const h = floatingHearts[i];
+        h.y -= h.speed;
+        h.x += h.drift;
+        h.opacity -= 0.0015;
+
+        ctx.font = h.size + "px Arial";
+        ctx.fillStyle = "rgba(255,100,180," + h.opacity + ")";
+        ctx.fillText("♥", h.x, h.y);
+
+        if (h.y < -50 || h.opacity <= 0) {
+            floatingHearts.splice(i, 1);
+        }
+    }
+    requestAnimationFrame(drawFloatingHearts);
+}
+
+/* =========================================================
+   ЗАПУСК
+   ========================================================= */
+resizeCanvas();
+requestAnimationFrame(drawParticles);
+requestAnimationFrame(drawFloatingHearts);
+
+/* =========================================================
+   КНОПКА
+   ========================================================= */
+openButton.addEventListener("click", function () {
+    startScreen.style.opacity = "0";
+    startScreen.style.transform = "scale(1.08)";
+
+    setTimeout(function () {
+        startScreen.style.display = "none";
+        greeting.classList.add("show");
+        document.body.classList.add("greeting-open");
+    }, 700);
+
+    if (!animationStarted) {
+        animationStarted = true;
+        setInterval(function () {
+            createFloatingHeart();
+        }, 350);
+    }
+});
+
+/* =========================================================
+   ПОВТОР
+   ========================================================= */
+restartButton.addEventListener("click", function () {
+    greeting.classList.remove("show");
+    document.body.classList.remove("greeting-open");
+    document.getElementById("greetingContent").scrollTop = 0;
+
+    setTimeout(function () {
+        startScreen.style.display = "flex";
+        requestAnimationFrame(function () {
+            startScreen.style.opacity = "1";
+            startScreen.style.transform = "scale(1)";
+        });
+    }, 700);
+});
+
+/* =========================================================
+   ПЕРЕСОЗДАНИЕ ПРИ ПОВОРОТЕ ТЕЛЕФОНА
+   ========================================================= */
+window.addEventListener("resize", function () {
+    resizeCanvas();
+});
+
+/* =========================================================
+   ДОПОЛНИТЕЛЬНО: поддержка touchstart
+   ========================================================= */
+let touchUsed = false;
+openButton.addEventListener(
+    "touchstart",
+    function () {
+        touchUsed = true;
+    },
+    { passive: true }
+);
+</script>
+
+</body>
+</html>
